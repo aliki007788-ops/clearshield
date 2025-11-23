@@ -1,1 +1,3 @@
-# clearshield
+# ClearShield Launch Package
+
+Placeholder files.
