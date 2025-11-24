@@ -6,6 +6,7 @@
     <title>ClearShield - Data Protection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -18,22 +19,46 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         .btn-primary {
             background: linear-gradient(135deg, #f97316, #ea580c);
             transition: all 0.3s ease;
+            border: none;
+            color: white;
+            font-weight: 600;
         }
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
+            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.4);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #f97316;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(249, 115, 22, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
         }
     </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="flex items-center justify-center p-4 min-h-screen">
     <div class="max-w-2xl w-full">
         <!-- Header -->
         <div class="text-center mb-12">
-            <h1 class="text-5xl font-bold mb-4">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">
                 Your Data Is <span class="text-orange-500">Exposed</span>
             </h1>
             <p class="text-xl text-gray-300">
@@ -42,32 +67,33 @@
         </div>
 
         <!-- Main Card -->
-        <div class="glass-card p-8 mb-8">
+        <div class="glass-card p-6 md:p-8 mb-8">
             <!-- Step 1: Email Input -->
             <div id="step1">
                 <h2 class="text-2xl font-bold mb-6 text-center">Start Protection Scan</h2>
                 
                 <div class="mb-6">
-                    <label class="block text-gray-300 mb-2">Email Address</label>
-                    <input type="email" id="emailInput" placeholder="Enter your email" 
-                        class="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <label class="block text-gray-300 mb-3 font-medium">Email Address</label>
+                    <input type="email" id="emailInput" placeholder="Enter your email address" 
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-lg">
                 </div>
                 
-                <button onclick="startScan()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
-                    🔍 Scan My Data - 9 USDT
+                <button onclick="startScan()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl mb-6 pulse">
+                    <i class="fas fa-search mr-2"></i>
+                    Scan My Data - 9 USDT
                 </button>
 
-                <div class="grid grid-cols-3 gap-4 mt-6 text-center">
+                <div class="grid grid-cols-3 gap-4 text-center">
                     <div class="p-3 bg-white/5 rounded-lg">
-                        <div class="text-orange-500 font-bold">9 USDT</div>
+                        <div class="text-orange-500 font-bold text-lg">9 USDT</div>
                         <div class="text-sm text-gray-400">Scan</div>
                     </div>
                     <div class="p-3 bg-white/5 rounded-lg">
-                        <div class="text-orange-500 font-bold">29 USDT</div>
+                        <div class="text-orange-500 font-bold text-lg">29 USDT</div>
                         <div class="text-sm text-gray-400">Remove</div>
                     </div>
                     <div class="p-3 bg-white/5 rounded-lg">
-                        <div class="text-orange-500 font-bold">100+</div>
+                        <div class="text-orange-500 font-bold text-lg">100+</div>
                         <div class="text-sm text-gray-400">Sites</div>
                     </div>
                 </div>
@@ -77,23 +103,24 @@
             <div id="step2" class="hidden">
                 <h2 class="text-2xl font-bold mb-6 text-center">Complete Payment</h2>
                 
-                <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6">
+                <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
                     <div class="flex items-center gap-3">
-                        <span class="text-yellow-500">⚠</span>
+                        <i class="fas fa-wallet text-yellow-500 text-xl"></i>
                         <div>
                             <div class="font-semibold">TronLink Required</div>
-                            <div class="text-sm text-gray-300">Please install and unlock TronLink</div>
+                            <div class="text-sm text-gray-300">Please install and unlock TronLink wallet</div>
                         </div>
                     </div>
                 </div>
 
                 <button onclick="processPayment()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl mb-4">
-                    💳 Pay 9 USDT Now
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Pay 9 USDT Now
                 </button>
 
                 <div id="paymentStatus" class="hidden text-center py-4">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                    <p class="mt-2">Processing payment...</p>
+                    <div class="loading-spinner mx-auto mb-2"></div>
+                    <p class="text-gray-300">Processing payment...</p>
                 </div>
             </div>
 
@@ -104,21 +131,53 @@
                     <!-- Results will appear here -->
                 </div>
                 <button onclick="showRemovalOption()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
-                    🧹 Remove All Data - 29 USDT
+                    <i class="fas fa-broom mr-2"></i>
+                    Remove All Data - 29 USDT
                 </button>
             </div>
 
             <!-- Step 4: Removal -->
             <div id="step4" class="hidden">
                 <h2 class="text-2xl font-bold mb-6 text-center">Remove Your Data</h2>
+                
+                <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-shield-alt text-green-500 text-xl"></i>
+                        <div>
+                            <div class="font-semibold">Complete Protection</div>
+                            <div class="text-sm text-gray-300">Remove your data from all found sites</div>
+                        </div>
+                    </div>
+                </div>
+
                 <button onclick="processRemoval()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
-                    💳 Pay 29 USDT & Remove All
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Pay 29 USDT & Remove All
                 </button>
             </div>
         </div>
 
+        <!-- Features -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="glass-card p-4 text-center">
+                <i class="fas fa-user-shield text-orange-500 text-2xl mb-2"></i>
+                <div class="font-semibold">Expert Removal</div>
+                <div class="text-sm text-gray-400">Manual data removal</div>
+            </div>
+            <div class="glass-card p-4 text-center">
+                <i class="fas fa-clock text-orange-500 text-2xl mb-2"></i>
+                <div class="font-semibold">48h Report</div>
+                <div class="text-sm text-gray-400">Detailed report</div>
+            </div>
+            <div class="glass-card p-4 text-center">
+                <i class="fas fa-lock text-orange-500 text-2xl mb-2"></i>
+                <div class="font-semibold">Zero Logs</div>
+                <div class="text-sm text-gray-400">No data stored</div>
+            </div>
+        </div>
+
         <!-- Footer -->
-        <div class="text-center text-gray-500">
+        <div class="text-center text-gray-500 text-sm">
             <p>Protected by ClearShield • Your privacy matters</p>
         </div>
     </div>
@@ -127,6 +186,19 @@
     <script>
         let currentEmail = '';
         let scanResults = null;
+        let WALLET_ADDRESS = '';
+
+        // Initialize wallet address
+        async function initializeApp() {
+            try {
+                const response = await fetch('/config');
+                const config = await response.json();
+                WALLET_ADDRESS = config.wallet;
+            } catch (error) {
+                console.log('Config load failed, using default wallet');
+                WALLET_ADDRESS = 'YOUR_WALLET_ADDRESS_HERE';
+            }
+        }
 
         // Step navigation
         function showStep(step) {
@@ -151,7 +223,7 @@
         // Step 2: Process payment
         async function processPayment() {
             if (!window.tronWeb?.ready) {
-                alert('Please install and unlock TronLink wallet');
+                alert('Please install and unlock TronLink wallet to make payment');
                 return;
             }
 
@@ -160,7 +232,7 @@
             try {
                 // پرداخت 9 USDT
                 const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
-                const transaction = await contract.transfer("YOUR_WALLET_ADDRESS", 9 * 1000000).send({ 
+                const transaction = await contract.transfer(WALLET_ADDRESS, 9 * 1000000).send({ 
                     feeLimit: 40000000 
                 });
 
@@ -195,16 +267,43 @@
         function showResults(results) {
             const html = `
                 <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
-                    <div class="font-semibold">Risk Score: ${results.riskScore}%</div>
-                    <div class="text-sm">Found on ${results.sitesFound} sites</div>
+                    <div class="flex items-center gap-3 mb-2">
+                        <i class="fas fa-exclamation-triangle text-red-500"></i>
+                        <div class="font-semibold">High Risk Score: ${results.riskScore}%</div>
+                    </div>
+                    <div class="text-sm text-gray-300">Your data was found on ${results.sitesFound} data broker sites</div>
                 </div>
-                <div class="space-y-2 max-h-60 overflow-y-auto">
-                    ${results.sites.map(site => `
-                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
-                            <div>${site.name}</div>
-                            <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-sm">Found</span>
+
+                <div class="mb-4">
+                    <h3 class="font-semibold mb-2">Personal Information Found:</h3>
+                    <div class="grid grid-cols-1 gap-2">
+                        <div class="flex justify-between p-2 bg-white/5 rounded">
+                            <span class="text-gray-400">Name:</span>
+                            <span class="font-semibold">${results.personalInfo.name}</span>
                         </div>
-                    `).join('')}
+                        <div class="flex justify-between p-2 bg-white/5 rounded">
+                            <span class="text-gray-400">Location:</span>
+                            <span class="font-semibold">${results.personalInfo.location}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-2">Sites Found:</h3>
+                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                        ${results.sites.map(site => `
+                            <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i class="fas fa-globe text-orange-500"></i>
+                                    <div>
+                                        <div class="font-semibold">${site.name}</div>
+                                        <div class="text-sm text-gray-400">${site.url}</div>
+                                    </div>
+                                </div>
+                                <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-sm">Found</span>
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             `;
             document.getElementById('resultsContent').innerHTML = html;
@@ -225,7 +324,7 @@
             try {
                 // پرداخت 29 USDT
                 const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
-                const transaction = await contract.transfer("YOUR_WALLET_ADDRESS", 29 * 1000000).send({ 
+                const transaction = await contract.transfer(WALLET_ADDRESS, 29 * 1000000).send({ 
                     feeLimit: 40000000 
                 });
 
@@ -242,8 +341,10 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert('✅ Data removal started! You will receive a report within 48 hours.');
+                    alert('✅ Data removal started successfully! Our team will manually remove your data from all sites. You will receive a completion report within 48 hours.');
                     showStep(1);
+                    // Reset form
+                    document.getElementById('emailInput').value = '';
                 } else {
                     alert('Error: ' + result.error);
                 }
@@ -253,8 +354,11 @@
             }
         }
 
-        // Initialize
-        showStep(1);
+        // Initialize app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+            showStep(1);
+        });
     </script>
 </body>
 </html>
