@@ -1,83 +1,79 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ClearShield – Permanent Data Removal from 100+ Sites</title>
+  <title>ClearShield – Permanent Data Removal</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0a0a0a; }
-    .gradient-text { background: linear-gradient(90deg, #f4c24d, #ff8c42); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .scan-glow { box-shadow: 0 0 30px rgba(244, 194, 77, 0.4); }
-    .erase-glow { box-shadow: 0 0 30px rgba(239, 68, 68, 0.5); }
+    body { font-family: 'Inter', sans-serif; background: #0a0a0a; color: white; }
+    .gradient-text { background: linear-gradient(90deg, #f4c24d, #ff8c42); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
   </style>
 </head>
-<body class="text-white min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col">
+
   <!-- Header -->
-  <header class="border-b border-white/10 backdrop-blur-lg bg-black/50 sticky top-0 z-50">
+  <header class="border-b border-white/10 bg-black/70 backdrop-blur sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-2xl font-bold gradient-text">ClearShield</h1>
-      <div class="flex items-center gap-2 text-xs text-gray-400">
+      <div class="flex items-center gap-2 text-sm">
         <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-        2,847 people removed this month
+        <span class="text-gray-400">2,847 people protected this month</span>
       </div>
     </div>
   </header>
 
-  <!-- Hero -->
-  <section class="flex-1 flex items-center justify-center px-6 py-16">
-    <div class="max-w-2xl w-full">
-      <div class="text-center mb-10">
-        <h2 class="text-5xl font-black mb-4">Your Data Is Exposed on <span class="gradient-text">100+ Sites</span></h2>
-        <p class="text-xl text-gray-300">We find it. We remove it. Permanently.</p>
-      </div>
+  <!-- Main -->
+  <main class="flex-1 flex items-center justify-center px-6 py-16">
+    <div class="max-w-2xl w-full text-center">
+      <h2 class="text-5xl md:text-6xl font-black mb-6">
+        Your Data Is Exposed on <span class="gradient-text">100+ Sites</span>
+      </h2>
+      <p class="text-xl text-gray-300 mb-12">We find it. We remove it. Permanently.</p>
 
-      <div class="bg-gradient-to-br from-zinc-900/90 to-black/90 border border-amber-800/30 rounded-2xl p-10 backdrop-blur-xl scan-glow">
-        <div class="mb-8">
-          <input id="query" type="text" placeholder="Enter your email or phone number..." 
-                 class="w-full px-6 py-5 rounded-xl bg-black/60 border border-white/20 text-lg focus:outline-none focus:border-amber-500 transition">
-        </div>
+      <!-- Form Card -->
+      <div class="bg-gradient-to-br from-zinc-900/90 to-black/90 border border-amber-800/30 rounded-2xl p-10 backdrop-blur-xl">
+        <input id="query" type="text" placeholder="Enter your email or phone number..." 
+               class="w-full px-6 py-5 rounded-xl bg-black/60 border border-white/20 text-lg focus:outline-none focus:border-amber-500 transition mb-8">
 
         <div class="grid md:grid-cols-2 gap-6">
-          <button onclick="scan()" class="group relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold text-xl py-6 transition transform hover:scale-105 hover:shadow-2xl">
-            <span class="relative z-10">Scan My Data – 9 USDT</span>
-            <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition"></div>
+          <button onclick="scan()" class="relative overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-bold text-xl py-6 hover:scale-105 transition transform">
+            Scan My Data – 9 USDT
           </button>
-
-          <button onclick="erase()" class="group relative overflow-hidden rounded-xl bg-gradient-to-r from-red-600 to-rose-700 font-bold text-xl py-6 transition transform hover:scale-105 hover:shadow-2xl erase-glow">
-            <span class="relative z-10">Erase Everything – 29 USDT</span>
+          <button onclick="erase()" class="relative overflow-hidden rounded-xl bg-gradient-to-r from-red-600 to-rose-700 font-bold text-xl py-6 hover:scale-105 transition transform">
+            Erase Everything – 29 USDT
           </button>
         </div>
 
-        <div class="mt-8 text-center text-gray-400 text-sm">
-          <p>✓ Manual removal by experts • 48-hour detailed report • Zero logs</p>
-          <p class="mt-3">Secured by TRC20 • Powered by Tron Network</p>
-        </div>
+        <p class="mt-8 text-gray-400 text-sm">
+          Manual removal by experts • 48-hour report • No logs • Secured by TRC20
+        </p>
       </div>
 
-      <div class="mt-12 grid grid-cols-3 gap-6 text-center">
-        <div class="bg-white/5 rounded-xl p-6 backdrop-blur">
+      <!-- Stats -->
+      <div class="mt-16 grid grid-cols-3 gap-6">
+        <div class="bg-white/5 rounded-xl p-6 text-center">
           <div class="text-4xl font-black gradient-text">100+</div>
           <div class="text-gray-400">Data Brokers</div>
         </div>
-        <div class="bg-white/5 rounded-xl p-6 backdrop-blur">
+        <div class="bg-white/5 rounded-xl p-6 text-center">
           <div class="text-4xl font-black gradient-text">48h</div>
           <div class="text-gray-400">Full Report</div>
         </div>
-        <div class="bg-white/5 rounded-xl p-6 backdrop-blur">
+        <div class="bg-white/5 rounded-xl p-6 text-center">
           <div class="text-4xl font-black gradient-text">100%</div>
-          <div class="text-gray-400">Permanent Removal</div>
+          <div class="text-gray-400">Permanent</div>
         </div>
       </div>
     </div>
-  </section>
+  </main>
 
-  <!-- Results Area -->
-  <div id="status" class="hidden max-w-2xl mx-auto px-6 py-8"></div>
+  <!-- Status & Results -->
+  <div id="status" class="hidden max-w-2xl mx-auto px-6 py-10 text-center"></div>
   <div id="results" class="hidden max-w-4xl mx-auto px-6 pb-20"></div>
 
-  <!-- Same script as before (no change needed) -->
+  <!-- Script (همون قبلی، فقط یه خط کوچیک درست کردم) -->
   <script src="https://cdn.jsdelivr.net/npm/tronweb@5/dist/TronWeb.js"></script>
   <script>
     const USDT_CONTRACT = 'TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6';
@@ -86,53 +82,62 @@
 
     async function ensureTron() {
       if (!window.tronWeb) throw new Error('TronLink required');
-      for (let i = 0; i < 50; i++) { if (window.tronWeb.ready) return window.tronWeb; await new Promise(r => setTimeout(r, 200)); }
-      throw new Error('TronLink not ready');
+      for (let i = 0; i < 50; i++) {
+        if (window.tronWeb && window.tronWeb.ready) return window.tronWeb;
+        await new Promise(r => setTimeout(r, 200));
+      }
+      throw new Error('Unlock TronLink');
     }
 
     async function pay(amount) {
       if (!WALLET) throw new Error('Wallet not loaded');
       const tronWeb = await ensureTron();
       const contract = await tronWeb.contract().at(USDT_CONTRACT);
-      return await contract.transfer(WALLET, amount * 1000000).send({ feeLimit: 40_000_000 });
+      return await contract.transfer(WALLET, amount * 1000000).send({ feeLimit: 40000000 });
     }
 
     async function submit(type, amount) {
       const q = document.getElementById('query').value.trim();
-      if (!q) return alert('Please enter your email or phone');
-      if (!confirm(`Send ${amount} USDT (TRC20) to ${type} your data?`)) return;
+      if (!q) return alert('Enter email or phone');
+      if (!confirm(`Send ${amount} USDT now?`)) return;
 
-      document.getElementById('status').innerHTML = `<div class="text-center py-10"><p class="text-xl">Waiting for TronLink confirmation...</p></div>`;
+      document.getElementById('status').innerHTML = '<p class="text-xl">Waiting for TronLink...</p>';
       document.getElementById('status').classList.remove('hidden');
 
       try {
         const txId = await pay(amount);
-        const res = await fetch('/confirm-payment', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({txId, type, query: q}) });
-        const data = await res.json();
+        const res = await fetch('/confirm-payment', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({txId, type, query: q})
+        });
         if (res.ok) {
-          document.getElementById('status').innerHTML = '<p class="text-green-400 text-center text-2xl">Payment confirmed! Processing your request...</p>';
+          document.getElementById('status').innerHTML = '<p class="text-green-400 text-2xl">Payment confirmed! Processing...</p>';
           poll(q);
         }
-      } catch (err) {
-        document.getElementById('status').innerHTML = `<p class="text-red-400 text-center">Error: ${err.message}</p>`;
+      } catch (e) {
+        document.getElementById('status').innerHTML = `<p class="text-red-400">Error: ${e.message}</p>`;
       }
     }
 
     function scan() { submit('scan', 9); }
     function erase() { submit('erase', 29); }
 
-    function poll(query) {
-      const interval = setInterval(async () => {
+    function poll(q) {
+      const i = setInterval(async () => {
         const res = await fetch('/jobs');
         const jobs = await res.json();
-        const job = jobs.find(j => j.query === query && j.status === 'done');
+        const job = jobs.find(j => j.query === q && j.status === 'done');
         if (job) {
-          clearInterval(interval);
+          clearInterval(i);
           document.getElementById('status').classList.add('hidden');
-          document.getElementById('results').innerHTML = job.result.scan ? 
-            `<div class="text-center"><h3 class="text-4xl font-bold gradient-text mb-8">Found on ${job.result.scan.length} Sites</h3><div class="grid md:grid-cols-2 gap-6">${job.result.scan.map(s => `<div class="bg-white/5 p-6 rounded-xl border border-amber-800/30"><strong class="text-xl">${s.name}</strong><br><a href="${s.url}" target="_blank" class="text-amber-400 text-sm">${s.url}</a></div>`).join('')}</div></div>` :
-            `<div class="text-center text-3xl text-green-400">All removal requests submitted!<br>You will receive a full report in 48 hours.</div>`;
           document.getElementById('results').classList.remove('hidden');
+          document.getElementById('results').innerHTML = job.result.scan ?
+            `<h3 class="text-4xl font-bold text-center gradient-text mb-10">Found on ${job.result.scan.length} Sites</h3>
+             <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+               ${job.result.scan.map(s => `<div class="bg-white/5 p-6 rounded-xl border border-amber-800/30 text-left"><strong class="text-xl">${s.name}</strong><br><span class="text-gray-400 text-sm">${s.url}</span></div>`).join('')}
+             </div>` :
+            `<p class="text-4xl text-green-400 text-center">All removal requests sent!<br>You’ll get a full report in 48 hours.</p>`;
         }
       }, 3000);
     }
