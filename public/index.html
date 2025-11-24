@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ClearShield – Data Removal Service</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #000; color: white; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+      color: white;
+    }
     .btn-main {
       background: linear-gradient(135deg, #f97316, #ea580c);
       box-shadow: 0 20px 40px rgba(249, 115, 22, 0.4);
@@ -17,73 +21,73 @@
       transform: translateY(-4px);
       box-shadow: 0 30px 60px rgba(249, 115, 22, 0.6);
     }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2rem;
+      padding: 2.5rem;
+    }
   </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-6">
 
-  <div class="max-w-xl w-full text-center space-y-12">
+  <div class="max-w-3xl w-full text-center space-y-12">
 
-    <!-- عنوان اصلی -->
-    <div class="space-y-4">
-      <h1 class="text-6xl md:text-8xl font-black leading-tight">
-        Your Data Is<br><span class="text-orange-500">Exposed</span>
+    <!-- Hero Section -->
+    <div class="space-y-6">
+      <h1 class="text-6xl md:text-8xl font-extrabold leading-tight">
+        Your Data Is <span class="text-orange-500">Exposed</span>
       </h1>
-      <p class="text-2xl text-gray-400">Remove it from 100+ sites. Permanently.</p>
+      <p class="text-2xl text-gray-400">Remove it from <span class="text-orange-400 font-semibold">100+</span> sites. Permanently.</p>
     </div>
 
-    <!-- باکس اصلی -->
-    <div class="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 space-y-8">
+    <!-- Main Box -->
+    <div class="glass-card space-y-8">
 
-      <input type="text" id="query" placeholder="Email or phone number" 
-             class="w-full px-8 py-6 text-xl bg-white/10 border border-white/20 rounded-2xl focus:outline-none focus:border-orange-500 transition">
+      <input type="text" id="query" placeholder="Email or phone number"
+        class="w-full px-8 py-6 text-xl bg-white/10 border border-white/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
 
-      <!-- دکمه اصلی بزرگ (دقیقاً مثل عکس) -->
-      <button onclick="scan()" 
-              class="btn-main w-full py-8 text-3xl font-bold rounded-2xl text-white btn-main">
-        <div class="flex items-center justify-center gap-3">
-          <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/></svg>
-          Scan My Data – 9 USDT
-        </div>
+      <button onclick="scan()" class="btn-main w-full py-6 md:py-8 text-3xl font-bold rounded-2xl text-white flex items-center justify-center gap-4">
+        <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"/></svg>
+        Scan My Data – 9 USDT
       </button>
 
-      <!-- ویژگی‌ها -->
-      <div class="space-y-3 text-lg text-gray-300">
+      <div class="space-y-4 text-lg text-gray-300">
         <div class="flex items-center justify-center gap-3"><span class="text-green-400">✓</span> Manual removal by experts</div>
         <div class="flex items-center justify-center gap-3"><span class="text-green-400">✓</span> Full report in 48 hours</div>
         <div class="flex items-center justify-center gap-3"><span class="text-green-400">✓</span> 100% permanent • Zero logs</div>
       </div>
 
-      <!-- دکمه دوم -->
-      <button onclick="erase()" class="w-full py-6 text-xl font-medium border border-red-500/50 text-red-400 rounded-2xl hover:bg-red-500/10 transition">
+      <button onclick="erase()" class="w-full py-4 md:py-6 text-xl font-medium border border-red-500/50 text-red-400 rounded-2xl hover:bg-red-500/10 transition">
         Or remove everything – 29 USDT
       </button>
     </div>
 
-    <!-- آمار -->
-    <div class="flex justify-center gap-12 text-gray-500">
-      <div><div class="text-4xl font-black text-orange-500">100+</div><div>Sites</div></div>
-      <div><div class="text-4xl font-black text-orange-500">48h</div><div>Report</div></div>
-      <div><div class="text-4xl font-black text-orange-500">100%</div><div>Success</div></div>
+    <!-- Stats Section -->
+    <div class="flex flex-col md:flex-row justify-center gap-12 text-gray-500 text-center mt-8">
+      <div><div class="text-4xl md:text-5xl font-extrabold text-orange-500">100+</div><div>Sites</div></div>
+      <div><div class="text-4xl md:text-5xl font-extrabold text-orange-500">48h</div><div>Report</div></div>
+      <div><div class="text-4xl md:text-5xl font-extrabold text-orange-500">100%</div><div>Success</div></div>
     </div>
   </div>
 
-  <!-- اسکریپت پرداخت -->
   <script src="https://cdn.jsdelivr.net/npm/tronweb@5/dist/TronWeb.js"></script>
   <script>
     let WALLET = '';
-    fetch('/config').then(r=>r.json()).then(d=>WALLET=d.wallet);
-    
+    fetch('/config').then(r => r.json()).then(d => WALLET = d.wallet);
+
     async function pay(amount) {
       if (!window.tronWeb?.ready) return alert("Please unlock TronLink");
       const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
       return contract.transfer(WALLET, amount * 1000000).send({ feeLimit: 40000000 });
     }
-    
+
     async function go(type, price) {
       const query = document.getElementById('query').value.trim();
       if (!query) return alert("Enter your email or phone");
       if (!confirm(`Pay ${price} USDT (TRC20)?`)) return;
-      
+
       try {
         await pay(price);
         await fetch('/confirm-payment', {
@@ -96,7 +100,7 @@
         alert("Error: " + e.message);
       }
     }
-    
+
     function scan() { go('scan', 9); }
     function erase() { go('erase', 29); }
   </script>
