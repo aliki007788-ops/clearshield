@@ -1,68 +1,159 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="fa">
 <head>
   <meta charset="utf-8">
-  <title>ClearShield – Privacy Scanner</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body{margin:0;font-family:Arial;background:#0d0d0d;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px}
-    .c{max-width:420px;width:100%;text-align:center}
-    h1{font-size:28px;margin-bottom:10px}
-    p{font-size:15px;color:#aaa}
-    .card{background:#161616;padding:30px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
-    button{background:#f4c24d;color:#000;border:none;padding:16px;font-size:18px;border-radius:10px;width:100%;margin-top:20px;font-weight:bold;cursor:pointer}
-    #success{display:none;margin-top:30px}
-  </style>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ClearShield — محافظت از هویت دیجیتال</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body{direction:rtl;background:#0b0f12;color:#e6eef3;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;padding:24px}</style>
 </head>
-<body>
-  <div class="c">
-    <h1>ClearShield</h1>
-    <p>Scan your digital exposure across 100+ data brokers and<br>remove your info permanently.</p>
-    <div class="card">
-      <button onclick="pay(9)">Start Scan – 9 USDT (TRC20)</button>
-    </div>
-    <div id="success" class="card">
-      <p>Payment received! Your scan is complete.</p>
-      <p>Found on 67+ data broker sites.</p>
-      <button onclick="pay(29)" style="background:#d32f2f;color:#fff">Erase All – 29 USDT</button>
-    </div>
-  </div>
+<body class="min-h-screen flex items-center justify-center">
+  <main class="w-full max-w-2xl">
+    <section class="bg-gradient-to-br from-slate-900 via-slate-800 to-black p-8 rounded-2xl shadow-xl text-center">
+      <header class="mb-6">
+        <h1 class="text-3xl font-bold text-amber-400">ClearShield</h1>
+        <p class="text-sm text-slate-300 mt-2">اسکن منابع عمومی و درخواست حذف قانونی — شفاف و امن.</p>
+      </header>
 
-  <script>
-    let wallet = "";
+      <div id="visual" class="mb-4">
+        <!-- اگر می‌خواهی عکس پیش‌فرض داشته باشی، جایگذین کن -->
+        <img src="assets/screenshot.png" alt="screenshot" style="max-width:100%;border-radius:8px;display:block;margin:0 auto 12px" />
+      </div>
 
-    // دریافت آدرس والت از سرور
-    fetch('/config')
-      .then(r => r.json())
-      .then(d => wallet = d.wallet);
+      <form id="scanForm" class="space-y-4" onsubmit="return false;">
+        <label class="block text-right">
+          <span class="text-slate-300 text-sm">آدرس ایمیل / شماره / نام</span>
+          <input id="query" class="mt-2 w-full rounded-md bg-slate-900 p-3 border border-slate-700 text-slate-100" placeholder="you@example.com یا 0912..." required>
+        </label>
 
-    async function pay(amount) {
-      if (!window.tronWeb) {
-        alert("Please install and unlock TronLink!");
-        return;
+        <div class="grid grid-cols-2 gap-3">
+          <button id="scanBtn" class="py-3 rounded-md bg-amber-500 text-black font-semibold" onclick="handleScan()">اسکن — 9 USDT</button>
+          <button id="eraseBtn" class="py-3 rounded-md bg-rose-600 text-white font-semibold" onclick="handleErase()">درخواست حذف — 29 USDT</button>
+        </div>
+
+        <p class="text-xs text-slate-400 mt-2">پرداخت‌ها با USDT (TRC20) از طریق TronLink انجام می‌شود. ما تنها اطلاعاتی را پردازش می‌کنیم که خودتان وارد می‌کنید.</p>
+      </form>
+
+      <div id="status" class="mt-6 hidden bg-slate-800 p-4 rounded-md text-sm"></div>
+
+      <div id="results" class="mt-6 hidden bg-slate-800 p-4 rounded-md">
+        <h2 class="text-lg font-semibold text-amber-300 mb-2">نتایج اسکن</h2>
+        <div id="resultsBody" class="text-slate-200 text-sm"></div>
+      </div>
+    </section>
+    <footer class="text-center text-xs text-slate-500 mt-4">ClearShield — شفاف، امن، قانونی</footer>
+  </main>
+
+<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+<script>
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQVr7i'; // استاندارد USDT TRC20
+let WALLET_ADDRESS = '';
+const SCAN_AMOUNT = 9 * 1_000_000;
+const ERASE_AMOUNT = 29 * 1_000_000;
+
+function setStatus(msg, show=true) {
+  const s = document.getElementById('status');
+  s.innerText = msg;
+  s.classList.toggle('hidden', !show);
+}
+function showResults(html) {
+  const r = document.getElementById('results');
+  r.classList.remove('hidden');
+  document.getElementById('resultsBody').innerHTML = html;
+}
+
+// Load server config (wallet address must be provided by server)
+fetch('/config').then(r => r.json()).then(cfg => {
+  if (cfg && cfg.wallet) {
+    WALLET_ADDRESS = cfg.wallet;
+    console.log('Wallet from server:', WALLET_ADDRESS);
+  } else {
+    console.warn('No wallet configured on server.');
+  }
+}).catch(e => console.warn('config fetch failed', e));
+
+async function ensureTron() {
+  if (!window.tronWeb) {
+    setStatus('لطفاً TronLink نصب و فعال کنید.', true);
+    throw new Error('No TronLink');
+  }
+  for (let i=0;i<30;i++){
+    if (window.tronWeb && window.tronWeb.ready) return window.tronWeb;
+    await new Promise(r=>setTimeout(r, 200));
+  }
+  throw new Error('TronLink not ready');
+}
+function isValidAddress(addr) {
+  return typeof addr === 'string' && addr.length > 25;
+}
+
+async function sendUSDT(amount) {
+  if (!isValidAddress(WALLET_ADDRESS)) throw new Error('Server wallet not configured');
+  const tron = await ensureTron();
+  const contract = await tron.contract().at(USDT_CONTRACT);
+  setStatus('در حال ایجاد تراکنش — لطفاً TronLink را تأیید کنید...', true);
+  // مقدار باید عدد صحیح (6 اعشار)
+  const tx = await contract.transfer(WALLET_ADDRESS, amount).send();
+  setStatus('تراکنش ارسال شد — منتظر تأیید شبکه...', true);
+  return tx;
+}
+
+async function handleScan(){
+  try {
+    const q = document.getElementById('query').value.trim();
+    if (!q) return setStatus('لطفاً یک شناسه وارد کنید.');
+    if (!confirm('ارسال 9 USDT (TRC20) برای اجرای اسکن را تأیید می‌کنید؟')) return;
+    const tx = await sendUSDT(SCAN_AMOUNT);
+    const txId = tx.txid || tx;
+    setStatus('پرداخت فرستاده شد. در حال بررسی تراکنش...');
+    await fetch('/confirm-payment', {method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({txId, type:'scan', query: q})});
+    pollForResult(q);
+  } catch (err) {
+    console.error(err);
+    setStatus('خطا: ' + (err.message || err));
+    alert('خطا: ' + (err.message || err));
+  }
+}
+
+async function handleErase(){
+  try {
+    const q = document.getElementById('query').value.trim();
+    if (!q) return setStatus('لطفاً یک شناسه وارد کنید.');
+    if (!confirm('ارسال 29 USDT (TRC20) برای درخواست حذف قانونی را تأیید می‌کنید؟')) return;
+    const tx = await sendUSDT(ERASE_AMOUNT);
+    const txId = tx.txid || tx;
+    setStatus('پرداخت ارسال شد. در حال آماده‌سازی درخواست حذف...');
+    await fetch('/confirm-payment', {method:'POST',headers:{'Content-Type':'application/json'},body: JSON.stringify({txId, type:'erase', query: q})});
+    pollForResult(q);
+  } catch (err) {
+    console.error(err);
+    setStatus('خطا: ' + (err.message || err));
+    alert('خطا: ' + (err.message || err));
+  }
+}
+
+async function pollForResult(query) {
+  setStatus('منتظر نتایج ...');
+  const start = Date.now();
+  const timeout = 120000; // 2 minutes
+  const interval = setInterval(async ()=>{
+    try {
+      const res = await fetch('/jobs');
+      const jobs = await res.json();
+      const found = jobs.slice().reverse().find(j=> j.query===query && j.status==='done');
+      if (found) {
+        clearInterval(interval);
+        setStatus('اسکن کامل شد.', true);
+        showResults('<pre style="white-space:pre-wrap;">' + JSON.stringify(found.result, null, 2) + '</pre>');
+      } else if (Date.now() - start > timeout) {
+        clearInterval(interval);
+        setStatus('اسکن در حال انجام است. ایمیل خواهید گرفت پس از تکمیل.', true);
       }
-
-      try {
-        const tronWeb = window.tronWeb;
-        const usdtContract = "TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6"; // آدرس صحیح USDT-TRC20
-
-        const contract = await tronWeb.contract().at(usdtContract);
-        const result = await contract.transfer(wallet, amount * 1000000).send({
-          feeLimit: 40_000_000,
-          callValue: 0
-        });
-
-        document.getElementById('success').style.display = 'block';
-        alert("Payment successful! Thank you!");
-      } catch (err) {
-        console.log(err);
-        if (err.message?.includes("rejection")) {
-          alert("You cancelled the transaction.");
-        } else {
-          alert("Transaction failed: " + (err.message || "Unknown error"));
-        }
-      }
+    } catch(e){
+      console.error(e);
     }
-  </script>
+  }, 3000);
+}
+</script>
 </body>
 </html>
