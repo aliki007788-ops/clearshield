@@ -1,321 +1,260 @@
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const TronWeb = require('tronweb');
-const helmet = require('helmet');
-const cors = require('cors');
-
-const app = express();
-app.use(helmet());
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static('public'));
-
-const PORT = process.env.PORT || 3000;
-const WALLET_ADDRESS = process.env.TRON_WALLET_ADDRESS;
-
-const tronWeb = new TronWeb({
-  fullHost: 'https://api.trongrid.io',
-  headers: { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY || '' }
-});
-
-// دیتابیس ساده (در production از MongoDB استفاده کنید)
-const users = [];
-const jobs = [];
-const payments = [];
-
-// لیست واقعی سایت‌های داده‌بروکر
-const DATA_BROKERS = [
-  { name: "Whitepages", url: "https://whitepages.com", removalUrl: "https://whitepages.com/optout" },
-  { name: "Spokeo", url: "https://spokeo.com", removalUrl: "https://www.spokeo.com/optout" },
-  { name: "Intelius", url: "https://intelius.com", removalUrl: "https://www.intelius.com/optout" },
-  { name: "TruePeopleSearch", url: "https://truepeoplesearch.com", removalUrl: "https://www.truepeoplesearch.com/removal" },
-  { name: "BeenVerified", url: "https://beenverified.com", removalUrl: "https://www.beenverified.com/app/optout/search" },
-  { name: "FastPeopleSearch", url: "https://fastpeoplesearch.com", removalUrl: "https://www.fastpeoplesearch.com/removal" },
-  { name: "Radaris", url: "https://radaris.com", removalUrl: "https://radaris.com/page/control/profile" },
-  { name: "Veripages", url: "https://veripages.com", removalUrl: "https://veripages.com/opt-out/" },
-  { name: "PeopleFinder", url: "https://peoplefinder.com", removalUrl: "https://www.peoplefinder.com/opt-out" },
-  { name: "InstantCheckmate", url: "https://instantcheckmate.com", removalUrl: "https://www.instantcheckmate.com/optout" }
-];
-
-// API Routes
-app.get('/config', (req, res) => {
-  res.json({ 
-    wallet: WALLET_ADDRESS,
-    status: 'active',
-    version: '1.0'
-  });
-});
-
-// تایید واقعی تراکنش USDT
-async function verifyUSDTTransaction(txId, expectedAmount) {
-  try {
-    console.log(`Verifying transaction: ${txId}`);
-    
-    const transaction = await tronWeb.trx.getTransaction(txId);
-    if (!transaction) {
-      console.log('Transaction not found');
-      return false;
-    }
-
-    const transactionInfo = await tronWeb.trx.getTransactionInfo(txId);
-    if (!transactionInfo || transactionInfo.receipt?.result !== 'SUCCESS') {
-      console.log('Transaction failed or not confirmed');
-      return false;
-    }
-
-    // بررسی لاگ‌های تراکنش برای انتقال USDT
-    for (const log of transactionInfo.log || []) {
-      if (log.topics && log.topics[0] === 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
-        // این Transfer event هست
-        const fromAddress = '41' + log.topics[1].slice(-40);
-        const toAddress = '41' + log.topics[2].slice(-40);
-        const amountHex = log.data;
-        
-        // تبدیل مقدار از هگزادسیمال
-        const amount = parseInt(amountHex, 16) / 1000000; // USDT has 6 decimals
-        
-        console.log(`Transfer: ${amount} USDT from ${fromAddress} to ${toAddress}`);
-        
-        // بررسی آیا به والت ما واریز شده
-        if (toAddress === WALLET_ADDRESS && amount >= expectedAmount) {
-          console.log('Valid USDT transfer to our wallet');
-          return {
-            success: true,
-            amount: amount,
-            from: fromAddress
-          };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClearShield - Data Protection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
         }
-      }
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Transaction verification error:', error);
-    return false;
-  }
-}
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #f97316, #ea580c);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4">
+    <div class="max-w-2xl w-full">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-4">
+                Your Data Is <span class="text-orange-500">Exposed</span>
+            </h1>
+            <p class="text-xl text-gray-300">
+                Find and remove your personal information from data broker sites
+            </p>
+        </div>
 
-// اسکن واقعی داده‌ها (شبیه‌سازی شده)
-async function performDataScan(email) {
-  // در نسخه واقعی، اینجا API سایت‌های داده‌بروکر رو فراخوانی کنید
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // شبیه‌سازی پیدا کردن داده‌ها در سایت‌های مختلف
-      const foundSites = DATA_BROKERS.filter(() => Math.random() > 0.3);
-      const personalInfo = {
-        name: "John Doe", // در واقعیت از API داده‌بروکرها گرفته میشه
-        age: "35-40",
-        location: "New York, NY",
-        relatives: ["Jane Doe", "Robert Doe"]
-      };
-      
-      resolve({
-        sitesFound: foundSites.length,
-        sites: foundSites,
-        personalInfo: personalInfo,
-        riskScore: Math.floor(Math.random() * 100)
-      });
-    }, 3000);
-  });
-}
+        <!-- Main Card -->
+        <div class="glass-card p-8 mb-8">
+            <!-- Step 1: Email Input -->
+            <div id="step1">
+                <h2 class="text-2xl font-bold mb-6 text-center">Start Protection Scan</h2>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-300 mb-2">Email Address</label>
+                    <input type="email" id="emailInput" placeholder="Enter your email" 
+                        class="w-full p-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                
+                <button onclick="startScan()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
+                    🔍 Scan My Data - 9 USDT
+                </button>
 
-// حذف واقعی داده‌ها (شبیه‌سازی شده)
-async function performDataRemoval(email, sites) {
-  // در نسخه واقعی، اینجا فرآیند حذف دستی انجام میشه
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        success: true,
-        removedCount: sites.length,
-        sites: sites,
-        removalId: 'RM' + Date.now(),
-        completionTime: new Date().toISOString()
-      });
-    }, 5000);
-  });
-}
+                <div class="grid grid-cols-3 gap-4 mt-6 text-center">
+                    <div class="p-3 bg-white/5 rounded-lg">
+                        <div class="text-orange-500 font-bold">9 USDT</div>
+                        <div class="text-sm text-gray-400">Scan</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-lg">
+                        <div class="text-orange-500 font-bold">29 USDT</div>
+                        <div class="text-sm text-gray-400">Remove</div>
+                    </div>
+                    <div class="p-3 bg-white/5 rounded-lg">
+                        <div class="text-orange-500 font-bold">100+</div>
+                        <div class="text-sm text-gray-400">Sites</div>
+                    </div>
+                </div>
+            </div>
 
-// endpoint پرداخت و اسکن
-app.post('/scan-data', async (req, res) => {
-  try {
-    const { txId, email } = req.body;
-    
-    if (!txId || !email) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'MISSING_PARAMETERS',
-        message: 'Transaction ID and email are required'
-      });
-    }
+            <!-- Step 2: Payment -->
+            <div id="step2" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center">Complete Payment</h2>
+                
+                <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6">
+                    <div class="flex items-center gap-3">
+                        <span class="text-yellow-500">⚠</span>
+                        <div>
+                            <div class="font-semibold">TronLink Required</div>
+                            <div class="text-sm text-gray-300">Please install and unlock TronLink</div>
+                        </div>
+                    </div>
+                </div>
 
-    // تایید پرداخت 9 USDT
-    const paymentVerification = await verifyUSDTTransaction(txId, 9);
-    if (!paymentVerification) {
-      return res.status(400).json({
-        success: false,
-        error: 'PAYMENT_NOT_VERIFIED',
-        message: 'Payment verification failed'
-      });
-    }
+                <button onclick="processPayment()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl mb-4">
+                    💳 Pay 9 USDT Now
+                </button>
 
-    // ذخیره پرداخت
-    const payment = {
-      id: 'PAY_' + Date.now(),
-      txId: txId,
-      email: email,
-      amount: paymentVerification.amount,
-      type: 'scan',
-      status: 'verified',
-      date: new Date().toISOString()
-    };
-    payments.push(payment);
+                <div id="paymentStatus" class="hidden text-center py-4">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                    <p class="mt-2">Processing payment...</p>
+                </div>
+            </div>
 
-    // ایجاد job جدید
-    const job = {
-      id: 'SCAN_' + Date.now(),
-      email: email,
-      type: 'scan',
-      status: 'processing',
-      paymentId: payment.id,
-      createdAt: new Date().toISOString()
-    };
-    jobs.push(job);
+            <!-- Step 3: Results -->
+            <div id="step3" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center">Scan Results</h2>
+                <div id="resultsContent" class="mb-6">
+                    <!-- Results will appear here -->
+                </div>
+                <button onclick="showRemovalOption()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
+                    🧹 Remove All Data - 29 USDT
+                </button>
+            </div>
 
-    // انجام اسکن
-    const scanResults = await performDataScan(email);
-    
-    // آپدیت job
-    job.status = 'completed';
-    job.completedAt = new Date().toISOString();
-    job.results = scanResults;
+            <!-- Step 4: Removal -->
+            <div id="step4" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center">Remove Your Data</h2>
+                <button onclick="processRemoval()" class="btn-primary w-full py-4 text-lg font-semibold rounded-xl">
+                    💳 Pay 29 USDT & Remove All
+                </button>
+            </div>
+        </div>
 
-    res.json({
-      success: true,
-      jobId: job.id,
-      message: 'Data scan completed successfully',
-      results: scanResults
-    });
+        <!-- Footer -->
+        <div class="text-center text-gray-500">
+            <p>Protected by ClearShield • Your privacy matters</p>
+        </div>
+    </div>
 
-  } catch (error) {
-    console.error('Scan error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Internal server error'
-    });
-  }
-});
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@5/dist/TronWeb.js"></script>
+    <script>
+        let currentEmail = '';
+        let scanResults = null;
 
-// endpoint حذف داده‌ها
-app.post('/remove-data', async (req, res) => {
-  try {
-    const { txId, email, sites } = req.body;
-    
-    if (!txId || !email || !sites) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'MISSING_PARAMETERS',
-        message: 'Transaction ID, email and sites are required'
-      });
-    }
+        // Step navigation
+        function showStep(step) {
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step3').classList.add('hidden');
+            document.getElementById('step4').classList.add('hidden');
+            document.getElementById('step' + step).classList.remove('hidden');
+        }
 
-    // تایید پرداخت 29 USDT
-    const paymentVerification = await verifyUSDTTransaction(txId, 29);
-    if (!paymentVerification) {
-      return res.status(400).json({
-        success: false,
-        error: 'PAYMENT_NOT_VERIFIED',
-        message: 'Payment verification failed'
-      });
-    }
+        // Step 1: Start scan
+        function startScan() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email || !email.includes('@')) {
+                alert('Please enter a valid email address');
+                return;
+            }
+            currentEmail = email;
+            showStep(2);
+        }
 
-    // ذخیره پرداخت
-    const payment = {
-      id: 'PAY_' + Date.now(),
-      txId: txId,
-      email: email,
-      amount: paymentVerification.amount,
-      type: 'removal',
-      status: 'verified',
-      date: new Date().toISOString()
-    };
-    payments.push(payment);
+        // Step 2: Process payment
+        async function processPayment() {
+            if (!window.tronWeb?.ready) {
+                alert('Please install and unlock TronLink wallet');
+                return;
+            }
 
-    // ایجاد job حذف
-    const job = {
-      id: 'REMOVE_' + Date.now(),
-      email: email,
-      type: 'removal',
-      status: 'processing',
-      paymentId: payment.id,
-      sitesToRemove: sites,
-      createdAt: new Date().toISOString()
-    };
-    jobs.push(job);
+            document.getElementById('paymentStatus').classList.remove('hidden');
 
-    // انجام حذف
-    const removalResults = await performDataRemoval(email, sites);
-    
-    // آپدیت job
-    job.status = 'completed';
-    job.completedAt = new Date().toISOString();
-    job.results = removalResults;
+            try {
+                // پرداخت 9 USDT
+                const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
+                const transaction = await contract.transfer("YOUR_WALLET_ADDRESS", 9 * 1000000).send({ 
+                    feeLimit: 40000000 
+                });
 
-    res.json({
-      success: true,
-      jobId: job.id,
-      message: 'Data removal process started successfully',
-      results: removalResults
-    });
+                // ارسال به سرور
+                const response = await fetch('/scan-data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        txId: transaction,
+                        email: currentEmail
+                    })
+                });
 
-  } catch (error) {
-    console.error('Removal error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'SERVER_ERROR',
-      message: 'Internal server error'
-    });
-  }
-});
+                const result = await response.json();
+                
+                if (result.success) {
+                    scanResults = result.results;
+                    showStep(3);
+                    showResults(result.results);
+                } else {
+                    alert('Error: ' + result.error);
+                }
 
-// دریافت وضعیت job
-app.get('/job-status/:jobId', (req, res) => {
-  const job = jobs.find(j => j.id === req.params.jobId);
-  if (!job) {
-    return res.status(404).json({
-      success: false,
-      error: 'JOB_NOT_FOUND'
-    });
-  }
-  
-  res.json({
-    success: true,
-    job: job
-  });
-});
+            } catch (error) {
+                alert('Payment failed: ' + error.message);
+            } finally {
+                document.getElementById('paymentStatus').classList.add('hidden');
+            }
+        }
 
-// آمار برای پنل مدیریت
-app.get('/admin/stats', (req, res) => {
-  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalJobs = jobs.length;
-  const completedJobs = jobs.filter(job => job.status === 'completed').length;
-  
-  res.json({
-    success: true,
-    stats: {
-      totalRevenue: totalRevenue,
-      totalJobs: totalJobs,
-      completedJobs: completedJobs,
-      pendingJobs: totalJobs - completedJobs,
-      totalPayments: payments.length
-    },
-    recentPayments: payments.slice(-5).reverse()
-  });
-});
+        // Step 3: Show results
+        function showResults(results) {
+            const html = `
+                <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
+                    <div class="font-semibold">Risk Score: ${results.riskScore}%</div>
+                    <div class="text-sm">Found on ${results.sitesFound} sites</div>
+                </div>
+                <div class="space-y-2 max-h-60 overflow-y-auto">
+                    ${results.sites.map(site => `
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <div>${site.name}</div>
+                            <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-sm">Found</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            document.getElementById('resultsContent').innerHTML = html;
+        }
 
-app.listen(PORT, () => {
-  console.log(`🚀 ClearShield Revenue App running on port ${PORT}`);
-  console.log(`💰 Wallet: ${WALLET_ADDRESS}`);
-  console.log(`💸 Scan Price: 9 USDT | Removal Price: 29 USDT`);
-});
+        // Step 4: Show removal option
+        function showRemovalOption() {
+            showStep(4);
+        }
+
+        // Step 5: Process removal
+        async function processRemoval() {
+            if (!window.tronWeb?.ready) {
+                alert('Please install and unlock TronLink wallet');
+                return;
+            }
+
+            try {
+                // پرداخت 29 USDT
+                const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
+                const transaction = await contract.transfer("YOUR_WALLET_ADDRESS", 29 * 1000000).send({ 
+                    feeLimit: 40000000 
+                });
+
+                const response = await fetch('/remove-data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        txId: transaction,
+                        email: currentEmail,
+                        sites: scanResults.sites
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ Data removal started! You will receive a report within 48 hours.');
+                    showStep(1);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+
+            } catch (error) {
+                alert('Payment failed: ' + error.message);
+            }
+        }
+
+        // Initialize
+        showStep(1);
+    </script>
+</body>
+</html>
