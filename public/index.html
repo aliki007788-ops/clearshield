@@ -6,15 +6,8 @@
   <title>ClearShield – Privacy Scanner</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      background: #000;
-      color: #fff;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-    .glitch {
-      position: relative;
-      animation: glitch 3s infinite;
-    }
+    body { background: #000; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .glitch { position: relative; animation: glitch 3s infinite; }
     @keyframes glitch {
       0% { text-shadow: 2px 0 #f4c24d, -2px 0 #00a8ff; }
       2% { text-shadow: -2px 0 #f4c24d, 2px 0 #00a8ff; }
@@ -27,20 +20,17 @@
     <section class="bg-black/80 border border-amber-900/30 p-8 rounded-xl text-center backdrop-blur">
       <h1 class="text-3xl font-bold glitch">ClearShield</h1>
       <p class="text-gray-400 mt-2">Scan your digital exposure across 100+ data brokers.<br>See where you’ve been exposed — instantly.</p>
-
       <form id="form" class="mt-6 space-y-4">
-        <input id="query" class="w-full p-3 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-500" 
+        <input id="query" class="w-full p-3 rounded bg-gray-900 border border-gray-700 text-white placeholder-gray-500"
                placeholder="name@email.com or phone..." required>
-        
         <div class="grid grid-cols-2 gap-3">
           <button type="button" onclick="scan()" class="py-3 bg-amber-500 text-black font-bold rounded">Scan – 9 USDT</button>
           <button type="button" onclick="erase()" class="py-3 bg-red-600 text-white font-bold rounded">Erase – 29 USDT</button>
         </div>
         <p class="text-xs text-gray-500">
-          Payments via USDT (TRC20). Open in TronLink or Trust Wallet.
+          Payments via USDT (TRC20) • Open in TronLink
         </p>
       </form>
-
       <div id="status" class="mt-6 hidden text-sm p-3 bg-gray-900 rounded"></div>
       <div id="results" class="mt-6 hidden text-left text-sm"></div>
     </section>
@@ -49,16 +39,18 @@
     </footer>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/tronweb@4/dist/TronWeb.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tronweb@5/dist/TronWeb.js"></script>
   <script>
-    const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // ✅ درست
+    const USDT_CONTRACT = 'TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6'; // درست
     let WALLET = '';
-
-    fetch('/config').then(r => r.json()).then(d => WALLET = d.wallet);
+    
+    fetch('/config')
+      .then(r => r.json())
+      .then(d => WALLET = d.wallet);
 
     async function ensureTron() {
       if (!window.tronWeb) throw new Error('Install TronLink');
-      for (let i = 0; i < 30; i++) {
+      for (let i = 0; i < 50; i++) {
         if (window.tronWeb.ready) return window.tronWeb;
         await new Promise(r => setTimeout(r, 200));
       }
@@ -66,34 +58,38 @@
     }
 
     async function pay(amount) {
-      if (!WALLET) throw new Error('Wallet not configured');
-      const tron = await ensureTron();
-      const contract = await tron.contract().at(USDT_CONTRACT);
-      const tx = await contract.transfer(WALLET, amount * 1_000_000).send();
-      return tx.txid || tx;
+      if (!WALLET) throw new Error('Wallet not loaded');
+      const tronWeb = await ensureTron();
+      const contract = await tronWeb.contract().at(USDT_CONTRACT);
+      const tx = await contract.transfer(WALLET, amount * 1000000).send({
+        feeLimit: 40_000_000
+      });
+      return tx;
     }
 
     async function submit(type, amount) {
       const q = document.getElementById('query').value.trim();
-      if (!q) return alert('Enter query');
-      if (!confirm(`Send ${amount} USDT (TRC20)?`)) return;
-
-      setStatus('Sending transaction... Please confirm in TronLink.');
-      const txId = await pay(amount);
-      setStatus('Payment sent. Verifying...');
-
-      const res = await fetch('/confirm-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txId, type, query: q })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setStatus('Verified! Processing your request...');
-        poll(q);
-      } else {
-        setStatus('Failed: ' + (data.reason || 'unknown'));
+      if (!q) return alert('Enter email or phone');
+      if (!confirm(`Send ${amount} USDT (TRC20) now?`)) return;
+      
+      setStatus('Waiting for TronLink confirmation...');
+      try {
+        const txId = await pay(amount);
+        setStatus('Payment sent! Verifying...');
+        const res = await fetch('/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ txId, type, query: q })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setStatus('Payment verified! Processing your request...');
+          poll(q);
+        } else {
+          setStatus('Payment failed: ' + (data.reason || 'unknown'));
+        }
+      } catch (err) {
+        setStatus('Error: ' + err.message);
       }
     }
 
@@ -119,20 +115,19 @@
     }
 
     function renderResults(result) {
+      const div = document.getElementById('results');
       if (result.scan) {
         const html = result.scan.map(s => 
-          `<div class="mb-3 p-2 border-l-2 border-amber-500 bg-gray-900/50">
+          `<div class="mb-3 p-3 bg-gray-900/70 rounded border-l-4 border-amber-500">
             <strong>${s.name}</strong><br>
-            <a href="${s.url}" target="_blank" class="text-blue-400 text-xs">${s.url}</a><br>
-            <span class="text-gray-400 text-xs">${s.snippet}</span>
+            <a href="${s.url}" target="_blank" class="text-blue-400 text-xs underline">${s.url}</a>
           </div>`
         ).join('');
-        document.getElementById('results').innerHTML = `<h3 class="font-bold text-amber-400 mb-2">Found on ${result.scan.length} sites</h3>${html}`;
-        document.getElementById('results').classList.remove('hidden');
-      } else if (result.erase) {
-        document.getElementById('results').innerHTML = '<p class="text-green-400">✅ Removal request submitted. You’ll receive a report in 48h.</p>';
-        document.getElementById('results').classList.remove('hidden');
+        div.innerHTML = `<h3 class="font-bold text-amber-400 mb-3">Found on ${result.scan.length} sites</h3>${html}`;
+      } else {
+        div.innerHTML = '<p class="text-green-400 text-lg">Removal requests sent to all sites!<br>You will receive a full report in 48 hours.</p>';
       }
+      div.classList.remove('hidden');
     }
   </script>
 </body>
