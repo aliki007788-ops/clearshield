@@ -10,32 +10,18 @@ async function initializeApp() {
         const config = await response.json();
         WALLET_ADDRESS = config.wallet;
         console.log('✅ App initialized with wallet:', WALLET_ADDRESS);
-        
-        // Update wallet info in UI if needed
-        updateWalletInfo(config);
     } catch (error) {
         console.error('❌ Failed to load config:', error);
         showError('Failed to connect to service. Please refresh the page.');
     }
 }
 
-// Update wallet information in UI
-function updateWalletInfo(config) {
-    const walletElement = document.getElementById('walletInfo');
-    if (walletElement) {
-        walletElement.textContent = `Wallet: ${config.wallet ? 'Connected' : 'Not configured'}`;
-    }
-}
-
 // Step navigation
 function showStep(stepNumber) {
-    // Hide all steps
     document.getElementById('step1').classList.add('hidden');
     document.getElementById('step2').classList.add('hidden');
     document.getElementById('step3').classList.add('hidden');
     document.getElementById('step4').classList.add('hidden');
-    
-    // Show target step
     document.getElementById('step' + stepNumber).classList.remove('hidden');
 }
 
@@ -43,7 +29,6 @@ function showStep(stepNumber) {
 function startScan() {
     const email = document.getElementById('emailInput').value.trim();
     
-    // Validate email
     if (!email || !isValidEmail(email)) {
         showError('Please enter a valid email address');
         return;
@@ -53,15 +38,31 @@ function startScan() {
     showStep(2);
 }
 
-// Step 2: Process payment for scan
-async function processPayment() {
-    // Check if TronLink is available
-    if (!window.tronWeb?.ready) {
-        showError('Please install and unlock TronLink wallet to make payment');
-        return;
+// 🔥 تابع پرداخت واحد برای همه کاربران
+async function processPayment(amount) {
+    try {
+        // بررسی آیا TronLink در دسترس هست
+        if (typeof window.tronLink !== 'undefined') {
+            const transaction = await window.tronLink.request({
+                method: 'tron_sendTransaction',
+                params: [{
+                    to: WALLET_ADDRESS,
+                    amount: amount * 1000000,
+                    contractAddress: "TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6"
+                }]
+            });
+            return transaction;
+        } else {
+            throw new Error('Please install TronLink wallet from https://www.tronlink.org/');
+        }
+    } catch (error) {
+        console.error('❌ Payment error:', error);
+        throw error;
     }
+}
 
-    // Show loading state
+// Step 2: Process payment for scan
+async function processPaymentForScan() {
     const paymentStatus = document.getElementById('paymentStatus');
     const payButton = document.querySelector('#step2 button');
     
@@ -70,17 +71,9 @@ async function processPayment() {
     payButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
     
     try {
-        // Initialize contract
-        const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
-        
-        // Execute payment
-        const transaction = await contract.transfer(WALLET_ADDRESS, 9 * 1000000).send({ 
-            feeLimit: 40000000 
-        });
-
+        const transaction = await processPayment(9);
         console.log('💰 Payment transaction:', transaction);
 
-        // Send to server for verification and processing
         const response = await fetch('/scan-data', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -114,7 +107,6 @@ async function processPayment() {
 function displayScanResults(results) {
     const resultsContent = document.getElementById('resultsContent');
     
-    // Determine risk level
     const riskLevel = results.riskScore >= 80 ? 'high' : results.riskScore >= 60 ? 'medium' : 'low';
     const riskColor = riskLevel === 'high' ? 'risk-high' : riskLevel === 'medium' ? 'risk-medium' : 'risk-low';
     
@@ -172,7 +164,6 @@ function displayScanResults(results) {
             <div class="space-y-3 max-h-80 overflow-y-auto scrollable">
     `;
 
-    // Add each site
     results.sites.forEach(site => {
         html += `
                 <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg">
@@ -206,11 +197,6 @@ function showRemovalOption() {
 
 // Step 5: Process removal payment
 async function processRemovalPayment() {
-    if (!window.tronWeb?.ready) {
-        showError('Please install and unlock TronLink wallet to make payment');
-        return;
-    }
-
     const removalStatus = document.getElementById('removalStatus');
     const removeButton = document.querySelector('#step4 button');
     
@@ -219,17 +205,9 @@ async function processRemovalPayment() {
     removeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
 
     try {
-        // Initialize contract
-        const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6");
-        
-        // Execute payment
-        const transaction = await contract.transfer(WALLET_ADDRESS, 29 * 1000000).send({ 
-            feeLimit: 40000000 
-        });
-
+        const transaction = await processPayment(29);
         console.log('💰 Removal payment transaction:', transaction);
 
-        // Send to server for processing
         const response = await fetch('/remove-data', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -249,7 +227,6 @@ async function processRemovalPayment() {
                 'You will receive a detailed completion report within 48 hours via email.'
             );
             
-            // Reset form
             showStep(1);
             document.getElementById('emailInput').value = '';
             currentEmail = '';
@@ -287,7 +264,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     showStep(1);
     
-    // Add event listener for Enter key in email input
     document.getElementById('emailInput').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             startScan();
