@@ -89,13 +89,19 @@
       if (!confirm(`Pay ${price} USDT (TRC20)?`)) return;
 
       try {
-        await pay(price);
-        await fetch('/confirm-payment', {
+        const tx = await pay(price);
+        const response = await fetch('/confirm-payment', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({txId: 'sent', type, query})
+          body: JSON.stringify({txId: tx, type, query})
         });
-        alert("Payment successful! Your request is being processed.");
+        
+        const result = await response.json();
+        if (result.success) {
+          alert("Payment successful! Your request is being processed.");
+        } else {
+          alert("Payment verification failed: " + result.reason);
+        }
       } catch (e) {
         alert("Error: " + e.message);
       }
