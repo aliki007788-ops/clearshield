@@ -10,9 +10,20 @@ async function initializeApp() {
         const config = await response.json();
         WALLET_ADDRESS = config.wallet;
         console.log('✅ App initialized with wallet:', WALLET_ADDRESS);
+        
+        // Update wallet info in UI if needed
+        updateWalletInfo(config);
     } catch (error) {
         console.error('❌ Failed to load config:', error);
         showError('Failed to connect to service. Please refresh the page.');
+    }
+}
+
+// Update wallet information in UI
+function updateWalletInfo(config) {
+    const walletElement = document.getElementById('walletInfo');
+    if (walletElement) {
+        walletElement.textContent = `Wallet: ${config.wallet ? 'Connected' : 'Not configured'}`;
     }
 }
 
@@ -51,7 +62,12 @@ async function processPayment() {
     }
 
     // Show loading state
-    document.getElementById('paymentStatus').classList.remove('hidden');
+    const paymentStatus = document.getElementById('paymentStatus');
+    const payButton = document.querySelector('#step2 button');
+    
+    paymentStatus.classList.remove('hidden');
+    payButton.disabled = true;
+    payButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
     
     try {
         // Initialize contract
@@ -88,7 +104,9 @@ async function processPayment() {
         console.error('❌ Payment error:', error);
         showError('Payment failed: ' + error.message);
     } finally {
-        document.getElementById('paymentStatus').classList.add('hidden');
+        paymentStatus.classList.add('hidden');
+        payButton.disabled = false;
+        payButton.innerHTML = '<i class="fas fa-credit-card mr-3"></i>Pay 9 USDT Now';
     }
 }
 
@@ -193,7 +211,12 @@ async function processRemovalPayment() {
         return;
     }
 
-    document.getElementById('removalStatus').classList.remove('hidden');
+    const removalStatus = document.getElementById('removalStatus');
+    const removeButton = document.querySelector('#step4 button');
+    
+    removalStatus.classList.remove('hidden');
+    removeButton.disabled = true;
+    removeButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
 
     try {
         // Initialize contract
@@ -239,7 +262,9 @@ async function processRemovalPayment() {
         console.error('❌ Removal payment error:', error);
         showError('Removal payment failed: ' + error.message);
     } finally {
-        document.getElementById('removalStatus').classList.add('hidden');
+        removalStatus.classList.add('hidden');
+        removeButton.disabled = false;
+        removeButton.innerHTML = '<i class="fas fa-credit-card mr-3"></i>Pay 29 USDT & Remove All Data';
     }
 }
 
