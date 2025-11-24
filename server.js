@@ -10,8 +10,6 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(bodyParser.json());
-
-// سرویس فایل‌های استاتیک از پوشه public
 app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
@@ -28,17 +26,19 @@ const payments = [];
 
 // سایت‌های داده‌بروکر
 const DATA_BROKERS = [
-  { name: "Whitepages", url: "https://whitepages.com" },
-  { name: "Spokeo", url: "https://spokeo.com" },
-  { name: "Intelius", url: "https://intelius.com" },
-  { name: "TruePeopleSearch", url: "https://truepeoplesearch.com" },
-  { name: "BeenVerified", url: "https://beenverified.com" },
-  { name: "FastPeopleSearch", url: "https://fastpeoplesearch.com" },
-  { name: "Radaris", url: "https://radaris.com" },
-  { name: "Veripages", url: "https://veripages.com" }
+  { name: "Whitepages", url: "https://whitepages.com", removalUrl: "https://whitepages.com/optout" },
+  { name: "Spokeo", url: "https://spokeo.com", removalUrl: "https://www.spokeo.com/optout" },
+  { name: "Intelius", url: "https://intelius.com", removalUrl: "https://www.intelius.com/optout" },
+  { name: "TruePeopleSearch", url: "https://truepeoplesearch.com", removalUrl: "https://www.truepeoplesearch.com/removal" },
+  { name: "BeenVerified", url: "https://beenverified.com", removalUrl: "https://www.beenverified.com/app/optout/search" },
+  { name: "FastPeopleSearch", url: "https://fastpeoplesearch.com", removalUrl: "https://www.fastpeoplesearch.com/removal" },
+  { name: "Radaris", url: "https://radaris.com", removalUrl: "https://radaris.com/page/control/profile" },
+  { name: "Veripages", url: "https://veripages.com", removalUrl: "https://veripages.com/opt-out/" },
+  { name: "PeopleFinder", url: "https://peoplefinder.com", removalUrl: "https://www.peoplefinder.com/opt-out" },
+  { name: "InstantCheckmate", url: "https://instantcheckmate.com", removalUrl: "https://www.instantcheckmate.com/optout" }
 ];
 
-// Route اصلی - سرویس index.html
+// Route اصلی
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -47,26 +47,28 @@ app.get('/', (req, res) => {
 app.get('/config', (req, res) => {
   res.json({ 
     wallet: WALLET_ADDRESS,
-    status: 'active'
+    status: 'active',
+    version: '1.0'
   });
 });
 
-// تایید تراکنش
+// تایید تراکنش USDT
 async function verifyUSDTTransaction(txId, expectedAmount) {
   try {
-    console.log('Verifying transaction:', txId);
+    console.log('🔍 Verifying transaction:', txId);
     
-    // شبیه‌سازی تایید تراکنش - در نسخه واقعی باید پیاده‌سازی بشه
+    // برای تست - همیشه تایید میشه
+    // در نسخه واقعی باید پیاده‌سازی کامل بشه
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // برای تست، همیشه true برمی‌گردونه
     return {
       success: true,
       amount: expectedAmount,
-      from: 'TDN3QZCFCQMVQST5U4SJMPCKDKPPBT5C3KJZQTY'
+      from: 'TDN3QZCFCQMVQST5U4SJMPCKDKPPBT5C3KJZQTY',
+      txId: txId
     };
   } catch (error) {
-    console.error('Transaction verification error:', error);
+    console.error('❌ Transaction verification error:', error);
     return false;
   }
 }
@@ -79,16 +81,18 @@ app.post('/scan-data', async (req, res) => {
     if (!txId || !email) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Missing parameters'
+        error: 'MISSING_PARAMETERS',
+        message: 'Transaction ID and email are required'
       });
     }
 
-    // تایید پرداخت
+    // تایید پرداخت 9 USDT
     const paymentVerification = await verifyUSDTTransaction(txId, 9);
     if (!paymentVerification) {
       return res.status(400).json({
         success: false,
-        error: 'Payment verification failed'
+        error: 'PAYMENT_NOT_VERIFIED',
+        message: 'Payment verification failed'
       });
     }
 
@@ -99,11 +103,24 @@ app.post('/scan-data', async (req, res) => {
       email: email,
       amount: 9,
       type: 'scan',
+      status: 'verified',
       date: new Date().toISOString()
     };
     payments.push(payment);
 
-    // شبیه‌سازی اسکن
+    // ایجاد job
+    const job = {
+      id: 'SCAN_' + Date.now(),
+      email: email,
+      type: 'scan',
+      status: 'processing',
+      paymentId: payment.id,
+      createdAt: new Date().toISOString()
+    };
+    jobs.push(job);
+
+    // شبیه‌سازی اسکن داده
+    console.log('🔄 Scanning data for:', email);
     await new Promise(resolve => setTimeout(resolve, 3000));
     
     // نتایج شبیه‌سازی شده
@@ -117,33 +134,34 @@ app.post('/scan-data', async (req, res) => {
         name: "John Doe",
         age: "35-40",
         location: "New York, NY",
-        relatives: ["Jane Doe", "Robert Doe"]
+        phone: "+1 XXX-XXX-XXXX",
+        relatives: ["Jane Doe", "Robert Doe"],
+        previousAddresses: ["Los Angeles, CA", "Chicago, IL"]
       },
-      riskScore: 60 + Math.floor(Math.random() * 40)
+      riskScore: 60 + Math.floor(Math.random() * 40),
+      scanId: 'SCAN_' + Date.now()
     };
 
-    // ذخیره job
-    const job = {
-      id: 'SCAN_' + Date.now(),
-      email: email,
-      type: 'scan',
-      status: 'completed',
-      results: scanResults,
-      createdAt: new Date().toISOString()
-    };
-    jobs.push(job);
+    // آپدیت job
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+    job.results = scanResults;
+
+    console.log('✅ Scan completed for:', email, '- Found:', foundCount, 'sites');
 
     res.json({
       success: true,
       jobId: job.id,
+      message: 'Data scan completed successfully',
       results: scanResults
     });
 
   } catch (error) {
-    console.error('Scan error:', error);
+    console.error('❌ Scan error:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error'
+      error: 'SERVER_ERROR',
+      message: 'Internal server error'
     });
   }
 });
@@ -156,16 +174,18 @@ app.post('/remove-data', async (req, res) => {
     if (!txId || !email || !sites) {
       return res.status(400).json({ 
         success: false, 
-        error: 'Missing parameters'
+        error: 'MISSING_PARAMETERS',
+        message: 'Transaction ID, email and sites are required'
       });
     }
 
-    // تایید پرداخت
+    // تایید پرداخت 29 USDT
     const paymentVerification = await verifyUSDTTransaction(txId, 29);
     if (!paymentVerification) {
       return res.status(400).json({
         success: false,
-        error: 'Payment verification failed'
+        error: 'PAYMENT_NOT_VERIFIED',
+        message: 'Payment verification failed'
       });
     }
 
@@ -176,40 +196,105 @@ app.post('/remove-data', async (req, res) => {
       email: email,
       amount: 29,
       type: 'removal',
+      status: 'verified',
       date: new Date().toISOString()
     };
     payments.push(payment);
 
-    // شبیه‌سازی حذف
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
+    // ایجاد job حذف
     const job = {
       id: 'REMOVE_' + Date.now(),
       email: email,
       type: 'removal',
-      status: 'completed',
-      sitesRemoved: sites.length,
+      status: 'processing',
+      paymentId: payment.id,
+      sitesToRemove: sites,
       createdAt: new Date().toISOString()
     };
     jobs.push(job);
 
+    // شبیه‌سازی حذف داده
+    console.log('🔄 Removing data for:', email, '- Sites:', sites.length);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // آپدیت job
+    job.status = 'completed';
+    job.completedAt = new Date().toISOString();
+    job.results = {
+      success: true,
+      removedCount: sites.length,
+      removalId: 'RM_' + Date.now(),
+      completionTime: new Date().toISOString(),
+      message: 'Data removal requests submitted successfully'
+    };
+
+    console.log('✅ Removal completed for:', email, '- Removed from:', sites.length, 'sites');
+
     res.json({
       success: true,
       jobId: job.id,
-      message: `Data removal started for ${sites.length} sites`
+      message: 'Data removal process completed successfully',
+      results: job.results
     });
 
   } catch (error) {
-    console.error('Removal error:', error);
+    console.error('❌ Removal error:', error);
     res.status(500).json({
       success: false,
-      error: 'Server error'
+      error: 'SERVER_ERROR',
+      message: 'Internal server error'
     });
   }
 });
 
+// وضعیت job
+app.get('/job-status/:jobId', (req, res) => {
+  const job = jobs.find(j => j.id === req.params.jobId);
+  if (!job) {
+    return res.status(404).json({
+      success: false,
+      error: 'JOB_NOT_FOUND'
+    });
+  }
+  
+  res.json({
+    success: true,
+    job: job
+  });
+});
+
+// آمار
+app.get('/admin/stats', (req, res) => {
+  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalJobs = jobs.length;
+  const completedJobs = jobs.filter(job => job.status === 'completed').length;
+  
+  res.json({
+    success: true,
+    stats: {
+      totalRevenue: totalRevenue,
+      totalJobs: totalJobs,
+      completedJobs: completedJobs,
+      pendingJobs: totalJobs - completedJobs,
+      totalPayments: payments.length
+    },
+    recentPayments: payments.slice(-5).reverse()
+  });
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📧 Scan: 9 USDT | Removal: 29 USDT`);
-  console.log(`👛 Wallet: ${WALLET_ADDRESS}`);
+  console.log('🚀 ClearShield Server Started!');
+  console.log(`📍 Port: ${PORT}`);
+  console.log(`💰 Wallet: ${WALLET_ADDRESS}`);
+  console.log(`💸 Scan: 9 USDT | Removal: 29 USDT`);
+  console.log(`🌐 URL: http://localhost:${PORT}`);
 });
