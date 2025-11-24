@@ -13,16 +13,14 @@ app.use(express.static('public'));
 
 const PORT = process.env.PORT || 3000;
 const WALLET_ADDRESS = process.env.TRON_WALLET_ADDRESS;
-const USDT_CONTRACT = 'TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6'; // درست
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCuuQdCA3f2Y2Y8pSQ9e6';
 
 const tronWeb = new TronWeb({
   fullHost: 'https://api.trongrid.io',
   headers: { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY || '' }
 });
 
-app.get('/config', (req, res) => {
-  res.json({ wallet: WALLET_ADDRESS });
-});
+const jobs = [];
 
 const BROKER_SITES = [
   { name: "Whitepages", url: "https://whitepages.com" },
@@ -35,52 +33,108 @@ const BROKER_SITES = [
   { name: "Veripages", url: "https://veripages.com" }
 ];
 
-const jobs = [];
+app.get('/config', (req, res) => {
+  res.json({ wallet: WALLET_ADDRESS });
+});
 
 async function verifyTx(txId) {
   try {
-    const info = await tronWeb.trx.getTransactionInfo(txId);
-    if (!info || info.receipt?.result !== 'SUCCESS') return false;
+    const transaction = await tronWeb.trx.getTransaction(txId);
+    if (!transaction) return false;
+
+    const transactionInfo = await tronWeb.trx.getTransactionInfo(txId);
+    if (!transactionInfo || transactionInfo.receipt?.result !== 'SUCCESS') return false;
+
+    const contractData = transaction.raw_data.contract[0];
+    if (contractData.type !== 'TriggerSmartContract') return false;
+
+    const parameterValue = contractData.parameter.value;
+    const toAddress = tronWeb.address.fromHex(parameterValue.contract_address);
     
-    for (const log of (info.log || [])) {
-      if (log.address && tronWeb.address.fromHex(log.address) === USDT_CONTRACT) {
-        const topics = log.topics || [];
-        if (topics[2]) {
-          const to = tronWeb.address.fromHex('41' + topics[2].slice(-40));
-          if (to === WALLET_ADDRESS) return true;
+    if (toAddress === USDT_CONTRACT) {
+      for (const log of (transactionInfo.log || [])) {
+        if (log.topics && log.topics[0] === 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+          const toAddressHex = log.topics[2];
+          if (toAddressHex) {
+            const recipient = tronWeb.address.fromHex('41' + toAddressHex.slice(-40));
+            if (recipient === WALLET_ADDRESS) {
+              return true;
+            }
+          }
         }
       }
     }
     return false;
-  } catch (e) {
+  } catch (error) {
+    console.error('Transaction verification error:', error);
     return false;
   }
 }
 
 app.post('/confirm-payment', async (req, res) => {
-  const { txId, type, query } = req.body;
-  if (!txId || !type || !query) return res.status(400).json({ reason: 'missing' });
+  try {
+    const { txId, type, query } = req.body;
+    
+    if (!txId || !type || !query) {
+      return res.status(400).json({ 
+        success: false, 
+        reason: 'missing_parameters'
+      });
+    }
 
-  const verified = await verifyTx(txId);
-  if (!verified) return res.status(400).json({ reason: 'not-verified' });
+    if (!['scan', 'erase'].includes(type)) {
+      return res.status(400).json({
+        success: false,
+        reason: 'invalid_type'
+      });
+    }
 
-  const job = { id: Date.now().toString(), query, type, status: 'processing' };
-  jobs.push(job);
+    const verified = await verifyTx(txId);
+    if (!verified) {
+      return res.status(400).json({
+        success: false,
+        reason: 'payment_not_verified'
+      });
+    }
 
-  setTimeout(async () => {
-    const count = 5 + Math.floor(Math.random() * 15);
-    const scan = Array.from({length: count}, () => 
-      BROKER_SITES[Math.floor(Math.random() * BROKER_SITES.length)]
-    );
-    job.result = type === 'scan' ? { scan } : { erase: true };
-    job.status = 'done';
-  }, 3000);
+    const job = {
+      id: Date.now().toString(),
+      query: query.trim(),
+      type,
+      status: 'processing',
+      createdAt: new Date().toISOString()
+    };
+    
+    jobs.push(job);
 
-  res.json({ message: 'ok' });
+    setTimeout(() => {
+      const count = 5 + Math.floor(Math.random() * 15);
+      const scanResults = Array.from({length: count}, () => 
+        BROKER_SITES[Math.floor(Math.random() * BROKER_SITES.length)]
+      );
+      
+      job.result = type === 'scan' ? { scan: scanResults } : { erase: true };
+      job.status = 'completed';
+      job.completedAt = new Date().toISOString();
+    }, 5000);
+
+    res.json({
+      success: true,
+      message: 'Payment confirmed',
+      jobId: job.id
+    });
+
+  } catch (error) {
+    console.error('Payment confirmation error:', error);
+    res.status(500).json({
+      success: false,
+      reason: 'server_error'
+    });
+  }
 });
 
 app.get('/jobs', (req, res) => res.json(jobs));
 
 app.listen(PORT, () => {
-  console.log(`ClearShield ready → https://clearshield.onrender.com`);
+  console.log(`ClearShield server running on port ${PORT}`);
 });
