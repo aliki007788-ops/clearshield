@@ -7,14 +7,21 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-app.use(helmet());
+
+// Middleware برای Render
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-const PORT = process.env.PORT || 3000;
+// پورت برای Render
+const PORT = process.env.PORT || 10000;
 const WALLET_ADDRESS = process.env.TRON_WALLET_ADDRESS;
 
+// تنظیم TronWeb
 const tronWeb = new TronWeb({
   fullHost: 'https://api.trongrid.io',
   headers: { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY || '' }
@@ -48,18 +55,19 @@ app.get('/config', (req, res) => {
   res.json({ 
     wallet: WALLET_ADDRESS,
     status: 'active',
-    version: '1.0'
+    version: '1.0',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// تایید تراکنش USDT
+// تایید تراکنش USDT (شبیه‌سازی شده برای تست)
 async function verifyUSDTTransaction(txId, expectedAmount) {
   try {
     console.log('🔍 Verifying transaction:', txId);
     
-    // برای تست - همیشه تایید میشه
+    // در Render برای تست - همیشه تایید میشه
     // در نسخه واقعی باید پیاده‌سازی کامل بشه
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     return {
       success: true,
@@ -121,10 +129,10 @@ app.post('/scan-data', async (req, res) => {
 
     // شبیه‌سازی اسکن داده
     console.log('🔄 Scanning data for:', email);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // نتایج شبیه‌سازی شده
-    const foundCount = 5 + Math.floor(Math.random() * 6); // 5-10 سایت
+    const foundCount = 5 + Math.floor(Math.random() * 6);
     const foundSites = DATA_BROKERS.slice(0, foundCount);
     
     const scanResults = {
@@ -215,7 +223,7 @@ app.post('/remove-data', async (req, res) => {
 
     // شبیه‌سازی حذف داده
     console.log('🔄 Removing data for:', email, '- Sites:', sites.length);
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
     // آپدیت job
     job.status = 'completed';
@@ -263,38 +271,37 @@ app.get('/job-status/:jobId', (req, res) => {
   });
 });
 
-// آمار
-app.get('/admin/stats', (req, res) => {
-  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalJobs = jobs.length;
-  const completedJobs = jobs.filter(job => job.status === 'completed').length;
-  
-  res.json({
-    success: true,
-    stats: {
-      totalRevenue: totalRevenue,
-      totalJobs: totalJobs,
-      completedJobs: completedJobs,
-      pendingJobs: totalJobs - completedJobs,
-      totalPayments: payments.length
-    },
-    recentPayments: payments.slice(-5).reverse()
-  });
-});
-
-// Health check
+// Health check برای Render
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    environment: process.env.NODE_ENV,
+    service: 'clearshield'
   });
 });
 
-app.listen(PORT, () => {
-  console.log('🚀 ClearShield Server Started!');
+// Fallback route برای SPA
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  console.error('🚨 Server Error:', error);
+  res.status(500).json({
+    success: false,
+    error: 'INTERNAL_SERVER_ERROR',
+    message: 'Something went wrong'
+  });
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('🚀 ClearShield Server Started on Render!');
   console.log(`📍 Port: ${PORT}`);
-  console.log(`💰 Wallet: ${WALLET_ADDRESS}`);
-  console.log(`💸 Scan: 9 USDT | Removal: 29 USDT`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
+  console.log(`💰 Wallet: ${WALLET_ADDRESS || 'Not configured'}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Ready to accept requests`);
 });
