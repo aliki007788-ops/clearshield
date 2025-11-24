@@ -21,7 +21,7 @@ app.use(express.static('public'));
 const PORT = process.env.PORT || 10000;
 const WALLET_ADDRESS = process.env.TRON_WALLET_ADDRESS;
 
-// تنظیم TronWeb
+// تنظیم TronWeb با API Key واقعی
 const tronWeb = new TronWeb({
   fullHost: 'https://api.trongrid.io',
   headers: { 'TRON-PRO-API-KEY': process.env.TRON_API_KEY || '' }
@@ -56,25 +56,77 @@ app.get('/config', (req, res) => {
     wallet: WALLET_ADDRESS,
     status: 'active',
     version: '1.0',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'production'
   });
 });
 
-// تایید تراکنش USDT (شبیه‌سازی شده برای تست)
+// 🔥 **تابع واقعی تایید تراکنش USDT**
 async function verifyUSDTTransaction(txId, expectedAmount) {
   try {
-    console.log('🔍 Verifying transaction:', txId);
+    console.log('🔍 Verifying REAL USDT transaction:', txId);
     
-    // در Render برای تست - همیشه تایید میشه
-    // در نسخه واقعی باید پیاده‌سازی کامل بشه
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      success: true,
-      amount: expectedAmount,
-      from: 'TDN3QZCFCQMVQST5U4SJMPCKDKPPBT5C3KJZQTY',
-      txId: txId
-    };
+    // بررسی وجود تراکنش
+    const transaction = await tronWeb.trx.getTransaction(txId);
+    if (!transaction) {
+      console.log('❌ Transaction not found');
+      return false;
+    }
+
+    // بررسی وضعیت تراکنش
+    const transactionInfo = await tronWeb.trx.getTransactionInfo(txId);
+    if (!transactionInfo) {
+      console.log('❌ Transaction info not available');
+      return false;
+    }
+
+    if (transactionInfo.receipt?.result !== 'SUCCESS') {
+      console.log('❌ Transaction failed:', transactionInfo.receipt?.result);
+      return false;
+    }
+
+    console.log('✅ Transaction confirmed on blockchain');
+
+    // بررسی لاگ‌های تراکنش برای انتقال USDT
+    if (!transactionInfo.log || transactionInfo.log.length === 0) {
+      console.log('❌ No logs found in transaction');
+      return false;
+    }
+
+    for (const log of transactionInfo.log) {
+      // بررسی آیا این لاگ مربوط به انتقال USDT هست
+      if (log.topics && log.topics[0] === 'ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') {
+        
+        // آدرس مقصد (40 کاراکتر آخر + 41 اول)
+        const toAddress = '41' + log.topics[2].slice(-40);
+        const fromAddress = '41' + log.topics[1].slice(-40);
+        
+        // تبدیل مقدار از هگز
+        const amountHex = log.data;
+        const amount = parseInt(amountHex, 16) / 1000000; // USDT has 6 decimals
+        
+        console.log('💰 USDT Transfer Details:', {
+          from: fromAddress,
+          to: toAddress,
+          amount: amount + ' USDT',
+          ourWallet: WALLET_ADDRESS
+        });
+
+        // بررسی آیا به والت ما واریز شده
+        if (toAddress === WALLET_ADDRESS && amount >= expectedAmount) {
+          console.log('✅ Valid USDT transfer to our wallet!');
+          return {
+            success: true,
+            amount: amount,
+            from: fromAddress,
+            txId: txId
+          };
+        }
+      }
+    }
+
+    console.log('❌ No valid USDT transfer to our wallet found');
+    return false;
+
   } catch (error) {
     console.error('❌ Transaction verification error:', error);
     return false;
@@ -94,24 +146,30 @@ app.post('/scan-data', async (req, res) => {
       });
     }
 
-    // تایید پرداخت 9 USDT
+    console.log('🔄 Starting scan process for:', email);
+
+    // 🔥 تایید پرداخت واقعی 9 USDT
     const paymentVerification = await verifyUSDTTransaction(txId, 9);
     if (!paymentVerification) {
+      console.log('❌ Payment verification failed for:', email);
       return res.status(400).json({
         success: false,
         error: 'PAYMENT_NOT_VERIFIED',
-        message: 'Payment verification failed'
+        message: 'Payment verification failed. Please make sure you sent 9 USDT to our wallet.'
       });
     }
+
+    console.log('✅ Payment verified for:', email, 'Amount:', paymentVerification.amount);
 
     // ذخیره پرداخت
     const payment = {
       id: 'PAY_' + Date.now(),
       txId: txId,
       email: email,
-      amount: 9,
+      amount: paymentVerification.amount,
       type: 'scan',
       status: 'verified',
+      fromAddress: paymentVerification.from,
       date: new Date().toISOString()
     };
     payments.push(payment);
@@ -128,8 +186,8 @@ app.post('/scan-data', async (req, res) => {
     jobs.push(job);
 
     // شبیه‌سازی اسکن داده
-    console.log('🔄 Scanning data for:', email);
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    console.log('🔍 Scanning data for:', email);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
     // نتایج شبیه‌سازی شده
     const foundCount = 5 + Math.floor(Math.random() * 6);
@@ -187,24 +245,30 @@ app.post('/remove-data', async (req, res) => {
       });
     }
 
-    // تایید پرداخت 29 USDT
+    console.log('🔄 Starting removal process for:', email);
+
+    // 🔥 تایید پرداخت واقعی 29 USDT
     const paymentVerification = await verifyUSDTTransaction(txId, 29);
     if (!paymentVerification) {
+      console.log('❌ Removal payment verification failed for:', email);
       return res.status(400).json({
         success: false,
         error: 'PAYMENT_NOT_VERIFIED',
-        message: 'Payment verification failed'
+        message: 'Payment verification failed. Please make sure you sent 29 USDT to our wallet.'
       });
     }
+
+    console.log('✅ Removal payment verified for:', email, 'Amount:', paymentVerification.amount);
 
     // ذخیره پرداخت
     const payment = {
       id: 'PAY_' + Date.now(),
       txId: txId,
       email: email,
-      amount: 29,
+      amount: paymentVerification.amount,
       type: 'removal',
       status: 'verified',
+      fromAddress: paymentVerification.from,
       date: new Date().toISOString()
     };
     payments.push(payment);
@@ -222,8 +286,8 @@ app.post('/remove-data', async (req, res) => {
     jobs.push(job);
 
     // شبیه‌سازی حذف داده
-    console.log('🔄 Removing data for:', email, '- Sites:', sites.length);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('🗑️ Removing data for:', email, '- Sites:', sites.length);
+    await new Promise(resolve => setTimeout(resolve, 5000));
 
     // آپدیت job
     job.status = 'completed';
@@ -271,14 +335,34 @@ app.get('/job-status/:jobId', (req, res) => {
   });
 });
 
-// Health check برای Render
+// آمار پرداخت‌ها
+app.get('/admin/stats', (req, res) => {
+  const totalRevenue = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const totalJobs = jobs.length;
+  const completedJobs = jobs.filter(job => job.status === 'completed').length;
+  
+  res.json({
+    success: true,
+    stats: {
+      totalRevenue: totalRevenue,
+      totalJobs: totalJobs,
+      completedJobs: completedJobs,
+      pendingJobs: totalJobs - completedJobs,
+      totalPayments: payments.length
+    },
+    recentPayments: payments.slice(-10).reverse()
+  });
+});
+
+// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     environment: process.env.NODE_ENV,
-    service: 'clearshield'
+    service: 'clearshield',
+    wallet: WALLET_ADDRESS ? 'configured' : 'not configured'
   });
 });
 
@@ -301,7 +385,8 @@ app.use((error, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 ClearShield Server Started on Render!');
   console.log(`📍 Port: ${PORT}`);
-  console.log(`💰 Wallet: ${WALLET_ADDRESS || 'Not configured'}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Ready to accept requests`);
+  console.log(`💰 Wallet: ${WALLET_ADDRESS}`);
+  console.log(`🔑 API Key: ${process.env.TRON_API_KEY ? 'Configured' : 'Not configured'}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
+  console.log(`💸 Ready for REAL payments!`);
 });
